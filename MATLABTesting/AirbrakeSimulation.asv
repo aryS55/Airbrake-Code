@@ -1,0 +1,243 @@
+clear;
+clc;
+
+%% -------------------------
+% USER INPUTS
+%% -------------------------
+
+targetApogee = 228.6; % meters (750 ft)
+
+rocketCd = .3099823057;
+rocketArea = .00246176; % m^2
+
+rocketDryMass = 650; % kg
+motorMass = 200; % kg
+burnTime = 10; % seconds
+
+dt = 0.01;
+maxTime = 60;
+
+g = 9.81;
+
+rho = 1.225;
+
+%% -------------------------
+% FIN DATA
+%% -------------------------
+
+coDragFin5 = .123;
+coDragFin10 = .249;
+coDragFin15 = .333;
+coDragFin20 = .393;
+coDragFin25 = .443;
+coDragFin30 = .492;
+coDragFin35 = .554;
+coDragFin38 = .56; %Changed from .535 Should be higher than 
+% 35 degrees, however was lower
+
+
+finArea5 = .0000645;
+finArea10 = .000129;
+finArea15 = .000193548;
+finArea20 = .000251612;
+finArea25 = .000309677;
+finArea30 = .000412902;
+finArea35 = .000412902;
+finArea38 = .000438709;
+
+
+angles = [5 10 15 20 25 30 35 38];
+
+finCdTable = [ ...
+    coDragFin5
+    coDragFin10
+    coDragFin15
+    coDragFin20
+    coDragFin25
+    coDragFin30
+    coDragFin35
+    coDragFin38 ];
+
+finAreaTable = [ ...
+    finArea5
+    finArea10
+    finArea15
+    finArea20
+    finArea25
+    finArea30
+    finArea35
+    finArea38];
+
+%% -------------------------
+% STATE VARIABLES
+%% -------------------------
+
+t = 0;
+velocity = 0;
+altitude = 0;
+
+deployTimes = [];
+deployAngles = [];
+
+timeHist = [];
+altHist = [];
+predictedApogeeHist = [];
+
+%% -------------------------
+% SIMULATION LOOP
+%% -------------------------
+
+while altitude >= 0 && t < maxTime
+
+    % Motor mass burnoff
+    if t <= burnTime
+        currentMotorMass = motorMass * (1 - t/burnTime);
+    else
+        currentMotorMass = 0;
+    end
+
+    mass = rocketDryMass + currentMotorMass;
+
+    % Thrust
+    thrust = ThrustFunction(t);
+
+    % Rocket drag
+    rocketDrag = DragFunction( ...
+        rocketCd,...
+        velocity,...
+        rocketArea);
+
+   %% -------------------------
+    % AIRBRAKE CONTROL (Optimized for All Angles)
+    %% -------------------------
+    finAngle = 0;
+    if t > burnTime
+        predictedApogee = predictedApogeeFunction( ...
+            velocity,...
+            thrust - rocketDrag - mass*g,...
+            altitude);
+        error = predictedApogee - targetApogee;
+        
+        % Utilizing every step in your data tables up to your 38-degree max
+        if error > 40
+            finAngle = 38;
+        elseif error > 35
+            finAngle = 35;
+        elseif error > 30
+            finAngle = 30;
+        elseif error > 25
+            finAngle = 25;
+        elseif error > 20
+            finAngle = 20;
+        elseif error > 15
+            finAngle = 15;
+        elseif error > 10
+            finAngle = 10;
+        elseif error > 5
+            finAngle = 5;
+        else
+            finAngle = 0;
+        end
+    else
+        predictedApogee = altitude;
+    end
+
+    %% -------------------------
+    % AIRBRAKE DRAG
+    %% -------------------------
+
+    if finAngle > 0
+
+        idx = find(angles == finAngle);
+
+        singleFinCd = finCdTable(idx);
+        singleFinArea = finAreaTable(idx);
+
+        singleFinDrag = DragFunction( ...
+            singleFinCd,...
+            velocity,...
+            singleFinArea);
+
+        airbrakeDrag = 3 * singleFinDrag;
+
+        deployTimes(end+1) = t;
+        deployAngles(end+1) = finAngle;
+
+    else
+
+        airbrakeDrag = 0;
+
+    end
+
+    %% -------------------------
+    % FORCE BALANCE
+    %% -------------------------
+
+    netForce = thrust ...
+        - rocketDrag ...
+        - airbrakeDrag ...
+        - mass*g;
+
+    acceleration = netForce / mass;
+
+    velocity = velocity + acceleration*dt;
+    altitude = altitude + velocity*dt;
+
+    %% -------------------------
+    % SAVE DATA
+    %% -------------------------
+
+    timeHist(end+1) = t;
+    altHist(end+1) = altitude;
+    predictedApogeeHist(end+1) = predictedApogee;
+
+    %% -------------------------
+    % STOP AT APOGEE
+    %% -------------------------
+
+    if velocity <= 0 && t > burnTime
+        break;
+    end
+
+    t = t + dt;
+
+end
+
+%% -------------------------
+% PLOTS
+%% -------------------------
+
+figure
+
+plot(timeHist,altHist,'LineWidth',2)
+hold on
+
+plot(timeHist,...
+     predictedApogeeHist,...
+     '--',...
+     'LineWidth',2)
+
+yline(targetApogee,'k:','750 ft Goal')
+
+xlabel('Time (s)')
+ylabel('Altitude (m)')
+
+legend( ...
+    'Actual Altitude',...
+    'Predicted Apogee',...
+    'Target Apogee')
+
+grid on
+
+%% -------------------------
+% DEPLOYMENT MARKERS
+%% -------------------------
+
+for i = 1:length(deployTimes)
+
+    xline(deployTimes(i),':');
+
+end
+
+fprintf('Final Apogee = %.2f m\n',max(altHist));
+fprintf('Final Apogee = %.2f ft\n',max(altHist)*3.28084);
