@@ -1,0 +1,3 @@
+The code uses the coefficient of drag of the airbrake + that of a 27 inch long, .56 inch diameter rocket. 
+The coefficent of drag may be different than that of the rocket you are using.
+Don't forget to change motor specs in the code, such as burn time, weight, and total impulse.
