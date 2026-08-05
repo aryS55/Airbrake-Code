@@ -59,16 +59,7 @@ The Arduino sketch (`Airbrake_code_final1.ino`) mirrors the simulation's control
 
 ## Hardware
 
-- **Barometer:** Adafruit BMP280
-- **Actuator:** MG90S micro servo
-- **Airbrake fins:** 3x deployable fins, 0°–38° range, characterized in `Airbrake_Cd_A__Sheet1.csv`
-- **Motor (test config):** AeroTech E-class motor (parameters configurable in the MATLAB scripts)
-
-## Notes / Future Work
-
-- The onboard firmware's apogee prediction (`PredictAlt`) uses a simplified ballistic estimate (`v²/19.6`), whereas the MATLAB simulation uses a full forward-integration model — these could be unified for closer sim-to-flight correlation.
-- Cd/area interpolation for intermediate fin angles is currently linear (`interp1`); a higher-fidelity aerodynamic model could improve prediction accuracy.
-- No apogee-detection redundancy (e.g., accelerometer fusion) is currently implemented in firmware; barometric-only sensing is used.
+- https://docs.google.com/spreadsheets/d/1zvrcIZWPvoYLU8WT9fTJuPD0JaqI2lauf-v_g7fgqz8/edit?usp=sharing
 
 ## Disclaimer
 
