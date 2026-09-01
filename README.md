@@ -64,3 +64,5 @@ The Arduino sketch (`Airbrake_code_final1.ino`) mirrors the simulation's control
 ## Disclaimer
 
 This is an experimental hobby rocketry project. Always follow your national rocketry association's safety code, use certified motors within your certification level, and never fly an active airbrake system without extensive ground testing and simulation validation.
+
+Code and documentation assisted with AI.
